@@ -158,6 +158,7 @@
     text-align:left;
   }
   .option:hover{border-color:var(--slate-light);}
+  .option:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
   .option-text{
     font-size:15.5px;
     line-height:1.55;
@@ -516,12 +517,12 @@
     panel.dataset.screen = q.id;
 
     const optionsHTML = q.options.map((opt, oIdx) => `
-      <button type="button" class="option" data-color="${opt.color}" data-qid="${q.id}" data-oidx="${oIdx}">
+      <div class="option" role="button" tabindex="0" data-color="${opt.color}" data-qid="${q.id}" data-oidx="${oIdx}">
         <span class="option-text">${opt.text}</span>
         <br>
         <button type="button" class="context-toggle" data-qid="${q.id}" data-oidx="${oIdx}-toggle">More context ⌄</button>
         <div class="context-body" id="context-${q.id}-${oIdx}">${opt.context}</div>
-      </button>
+      </div>
     `).join("");
 
     panel.innerHTML = `
@@ -585,8 +586,7 @@
         body.classList.toggle("open");
       });
 
-      btn.addEventListener("click", (e) => {
-        if (e.target === toggle) return;
+      const selectOption = () => {
         const oIdx = parseInt(btn.dataset.oidx, 10);
         const opt = q.options[oIdx];
 
@@ -599,6 +599,20 @@
 
         answers[q.id] = { stage: q.stage, color: opt.color };
         continueBtn.disabled = false;
+      };
+
+      btn.addEventListener("click", (e) => {
+        if (e.target === toggle) return;
+        selectOption();
+      });
+
+      // keyboard support since .option is now a div with role="button"
+      btn.addEventListener("keydown", (e) => {
+        if (e.target === toggle) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectOption();
+        }
       });
     });
 
