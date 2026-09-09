@@ -328,7 +328,11 @@
    3) Set up a Cowork task to watch that sheet/doc and generate +
       send the personalized report and resource guides
    ========================================================= */
-  const WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/28762560/4henz5p/";
+  const WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/28762560/4hn7blk/";
+  // Shared secret checked by a Filter step in Zapier right after the trigger,
+  // so submissions without it (e.g. from an automated scanner hitting a leaked
+  // URL directly, bypassing this page) get silently dropped instead of firing the Zap.
+  const FORM_TOKEN = "aegD2xcmjPrLhC-EgvKUaiB8eqYD0D3Z";
 
   const questions = [
     {
@@ -652,6 +656,7 @@
       name, email, phone,
       submittedAt: new Date().toISOString(),
       source: "AI ROI Mini-Assessment v1",
+      formToken: FORM_TOKEN,
       answers: questions.map(q => ({
         question: q.id,
         stage: q.stage,
