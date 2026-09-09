@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI ROI Mini-Assessment | Roosevelt Henderson Cook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14181C;
+    --ink-soft:#1E242B;
+    --paper:#F8F6F1;
+    --paper-dim:#EEEAE1;
+    --line:#DAD4C6;
+    --brass:#A9824C;
+    --brass-deep:#8C6B3D;
+    --slate:#5B6570;
+    --slate-light:#8B93A0;
+    --green:#3F7D58;
+    --green-bg:#E9F1EC;
+    --amber:#A97A0A;
+    --amber-bg:#FAF1DD;
+    --red:#A23B34;
+    --red-bg:#F7EAE8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 16px;
+  }
+  .stage{
+    width:100%;
+    max-width:680px;
+    background:var(--paper);
+    border-top:3px solid var(--brass);
+    box-shadow:0 30px 60px rgba(0,0,0,0.35);
+    padding:0;
+    position:relative;
+    overflow:hidden;
+  }
+  .progress-rail{
+    height:2px;
+    width:100%;
+    background:var(--paper-dim);
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--brass);
+    transition:width 0.5s ease;
+    width:0%;
+  }
+  .panel{
+    padding:52px 48px 44px;
+    display:none;
+  }
+  .panel.active{display:block; animation:fadeIn 0.4s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+  .brandline{
+    font-size:12.5px;
+    color:var(--slate);
+    letter-spacing:0.02em;
+    margin-bottom:28px;
+  }
+  .brandline strong{color:var(--ink-soft); font-weight:600;}
+  h1{
+    font-family:'Newsreader',serif;
+    font-weight:500;
+    font-size:30px;
+    line-height:1.28;
+    margin:0 0 18px;
+    color:var(--ink-soft);
+  }
+  h2.prompt{
+    font-family:'Newsreader',serif;
+    font-weight:500;
+    font-size:24px;
+    line-height:1.35;
+    margin:0 0 8px;
+    color:var(--ink-soft);
+    max-width:560px;
+  }
+  .stage-kicker{
+    font-size:13px;
+    color:var(--brass-deep);
+    font-weight:500;
+    margin-bottom:10px;
+  }
+  .step-count{
+    font-size:13px;
+    color:var(--slate);
+    margin-bottom:22px;
+  }
+  p{
+    font-size:16px;
+    line-height:1.65;
+    color:#3d454d;
+    max-width:560px;
+  }
+  .intro-copy p{margin:0 0 16px;}
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    font-weight:600;
+    padding:13px 26px;
+    border:none;
+    background:var(--brass);
+    color:var(--paper);
+    cursor:pointer;
+    transition:background 0.2s ease, opacity 0.2s ease;
+  }
+  .btn:hover{background:var(--brass-deep);}
+  .btn:disabled{opacity:0.35; cursor:not-allowed;}
+  .btn-row{margin-top:30px; display:flex; justify-content:flex-end;}
+
+  /* Per-question Continue buttons stay invisible until JS reveals them
+     (after the feedback has had a moment to be read). Scoped to
+     #questionMount only, so it never touches the intro/contact buttons. */
+  #questionMount .btn-row .btn{
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.5s ease;
+  }
+  #questionMount .btn-row .btn.show{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  .qcontext-row{margin:0 0 20px;}
+  .qcontext-toggle{
+    display:inline-block;
+    font-size:13px;
+    color:var(--brass-deep);
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    text-decoration:underline;
+    text-decoration-color:var(--line);
+    text-underline-offset:3px;
+  }
+  .qcontext-body{
+    display:none;
+    margin-top:10px;
+    padding:12px 14px;
+    background:var(--paper-dim);
+    border-left:3px solid var(--brass);
+    font-size:14.5px;
+    line-height:1.6;
+    color:#3d454d;
+    max-width:560px;
+  }
+  .qcontext-body.open{display:block;}
+
+  /* Wraps prompt + question-context + options as one unit so the whole
+     thing can fade out together the instant an answer is chosen. */
+  .question-body{
+    transition:opacity 0.4s ease;
+    opacity:1;
+  }
+  .question-body.fading{
+    opacity:0;
+    pointer-events:none;
+  }
+  .question-body.hidden{
+    display:none;
+  }
+
+  .options{margin-top:22px; display:flex; flex-direction:column; gap:12px;}
+  .option{
+    border:1px solid var(--line);
+    background:#fff;
+    padding:16px 18px;
+    cursor:pointer;
+    border-left:4px solid transparent;
+    transition:border-color 0.2s ease, background 0.2s ease;
+    text-align:left;
+  }
+  .option:hover{border-color:var(--slate-light);}
+  .option:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
+  .option-text{
+    font-size:15.5px;
+    line-height:1.55;
+    color:var(--ink-soft);
+    display:flex;
+    align-items:flex-start;
+    gap:11px;
+  }
+  .option-letter{
+    flex-shrink:0;
+    width:22px;
+    height:22px;
+    margin-top:1px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:600;
+    color:var(--slate);
+    background:var(--paper-dim);
+  }
+  .option.selected.green{border-left-color:var(--green); background:var(--green-bg);}
+  .option.selected.yellow{border-left-color:var(--amber); background:var(--amber-bg);}
+  .option.selected.red{border-left-color:var(--red); background:var(--red-bg);}
+  .option.selected.green .option-letter{border-color:var(--green); color:var(--green); background:#fff;}
+  .option.selected.yellow .option-letter{border-color:var(--amber); color:var(--amber); background:#fff;}
+  .option.selected.red .option-letter{border-color:var(--red); color:var(--red); background:#fff;}
+  .context-toggle{
+    display:inline-block;
+    margin-top:8px;
+    margin-left:33px;
+    font-size:13px;
+    color:var(--brass-deep);
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    text-decoration:underline;
+    text-decoration-color:var(--line);
+    text-underline-offset:3px;
+  }
+  .context-body{
+    display:none;
+    margin-top:10px;
+    margin-left:33px;
+    padding-top:10px;
+    border-top:1px solid var(--line);
+    font-size:14px;
+    line-height:1.6;
+    color:var(--slate);
+  }
+  .context-body.open{display:block;}
+
+  /* Feedback: hidden by default, then becomes the sole focal point of the
+     panel once revealed — no card/border treatment, just scale and space,
+     so it genuinely commands the screen rather than sitting in a box. */
+  .feedback{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    min-height:240px;
+    opacity:0;
+    visibility:hidden;
+    transition:opacity 0.5s ease;
+  }
+  .feedback.show{
+    opacity:1;
+    visibility:visible;
+  }
+  .feedback-label{
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:0.09em;
+    text-transform:uppercase;
+    margin-bottom:16px;
+    color:var(--slate);
+  }
+  .feedback.green .feedback-label{color:var(--green);}
+  .feedback.yellow .feedback-label{color:var(--amber-deep, var(--amber));}
+  .feedback.red .feedback-label{color:var(--red);}
+  .feedback-text{
+    font-family:'Newsreader',serif;
+    font-weight:500;
+    font-style:normal;
+    font-size:27px;
+    line-height:1.42;
+    color:var(--ink-soft);
+    margin:0;
+    max-width:560px;
+  }
+  form .field{margin-bottom:18px;}
+  label{
+    display:block;
+    font-size:13.5px;
+    font-weight:500;
+    color:#3d454d;
+    margin-bottom:6px;
+  }
+  input[type=text], input[type=email], input[type=tel]{
+    width:100%;
+    padding:12px 14px;
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink-soft);
+  }
+  input:focus{outline:2px solid var(--brass); outline-offset:1px;}
+  .fine-print{font-size:13px; color:var(--slate); margin-top:18px;}
+  .thankyou-score{
+    margin-top:22px;
+    padding:20px;
+    background:var(--paper-dim);
+    border-left:4px solid var(--brass);
+  }
+  .thankyou-score p{margin:0; color:var(--ink-soft);}
+  @media (max-width:600px){
+    .panel{padding:36px 26px 32px;}
+    h1{font-size:25px;}
+    h2.prompt{font-size:21px;}
+    .feedback-text{font-size:22px;}
+    .feedback{min-height:180px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="progress-rail"><div class="progress-fill" id="progressFill"></div></div>
+
+  <!-- INTRO -->
+  <div class="panel active" data-screen="intro">
+    <div class="brandline"><strong>Roosevelt Henderson Cook</strong> — AI ROI Mini-Assessment</div>
+    <h1>Before we begin.</h1>
+    <div class="intro-copy">
+      <p>Relax. Take a deep breath.</p>
+      <p>Prepare to answer these five questions in all honesty, to the best of your ability. If you don't fully understand a question or its answer choices, click "more context" at the end of the answer choices.</p>
+      <p>There are no right or wrong answers. Each question and response has been benchmarked against the common responses we've heard in AI implementation interviews conducted among you and your peers.</p>
+      <p>These five questions sit across three stages — Rollout, Evaluation, and Recovery. Somewhere in there is your fleet's single biggest opportunity, and this is how we find it.</p>
+      <p>You'll receive feedback after each response, showing how your approach is currently impacting your AI ROI. At the end, you'll enter your name, email, and phone number to receive your detailed report and resource guides to begin capturing your ROI recovery.</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="startBtn">Begin the assessment</button>
+    </div>
+  </div>
+
+  <!-- QUESTION SCREENS INSERTED BY JS -->
+  <div id="questionMount"></div>
+
+  <!-- CONTACT -->
+  <div class="panel" data-screen="contact">
+    <div class="brandline"><strong>Roosevelt Henderson Cook</strong> — AI ROI Mini-Assessment</div>
+    <h1>One last step.</h1>
+    <p>Enter your details below to receive your detailed diagnostic report and resource guides.</p>
+    <form id="contactForm">
+      <div class="field">
+        <label for="fname">Full name</label>
+        <input type="text" id="fname" required>
+      </div>
+      <div class="field">
+        <label for="femail">Business email</label>
+        <input type="email" id="femail" required>
+      </div>
+      <div class="field">
+        <label for="fphone">Phone</label>
+        <input type="tel" id="fphone" required>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="submit">Get my diagnostic report</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- THANK YOU -->
+  <div class="panel" data-screen="thankyou">
+    <div class="brandline"><strong>Roosevelt Henderson Cook</strong> — AI ROI Mini-Assessment</div>
+    <h1>Your diagnostic is complete.</h1>
+    <p id="thankyouSummary">Preparing your results...</p>
+    <div class="thankyou-score">
+      <p id="thankyouWeakest"></p>
+    </div>
+    <p class="fine-print">Your full report and resource guides are on their way to the email you provided.</p>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   CONFIGURATION — set this before going live
+   =========================================================
+   Paste a Zapier "Catch Hook" URL, a Make.com webhook, or a
+   HubSpot Forms API submission endpoint here. Leave blank to
+   run the assessment without sending data anywhere (useful
+   for internal review before wiring up automation).
+   ========================================================= */
+  const WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/28762560/4hn7blk/";
+  // Shared secret checked by a Filter step in Zapier right after the trigger,
+  // so submissions without it (e.g. from an automated scanner hitting a leaked
+  // URL directly, bypassing this page) get silently dropped instead of firing the Zap.
+  const FORM_TOKEN = "aegD2xcmjPrLhC-EgvKUaiB8eqYD0D3Z";
+
+  const OPTION_LETTERS = ["A", "B", "C", "D"];
+
+  const questions = [
+    {
+      id: "q1",
+      stage: "rollout",
+      stageLabel: "AI Rollout",
+      prompt: "How does your telematics workflow measure and actively mitigate the daily cognitive load and micro-fatigue baseline of your operators before it manifests as a hard-braking alert?",
+      qContext: "In plain terms: does your system catch driver fatigue before it turns into a risky event, or find out about it after the fact?",
+      options: [
+        {
+          color: "yellow",
+          text: "We review aggregate fatigue-alert trends on a periodic basis, primarily for reporting purposes rather than operational adjustment.",
+          impact: "Reviewing aggregate fatigue trends periodically confirms the pattern exists — it doesn't yet tell you what to do about it operationally.",
+          context: "In practice: someone reviews a fatigue trend report periodically, but that review doesn't change any dispatch or routing decisions."
+        },
+        {
+          color: "red",
+          text: "We respond when the camera chimes or triggers an active distraction event, treating each alert as an isolated incident requiring correction.",
+          impact: "Responding when an alert fires is the most common — and most costly — default: addressing the event instead of anticipating it.",
+          context: "In practice: nothing happens with fatigue data until an alert actually fires in the truck — there's no advance planning."
+        },
+        {
+          color: "green",
+          text: "Our team tracks macro-alert trends to map driver fatigue cycles, proactively adjusting dispatch windows and lane routing to match the operator's cognitive capacity.",
+          impact: "Adjusting dispatch windows and routing to match fatigue cycles is the integration point most fleets never reach — fatigue data directly shaping operational decisions, not just safety reporting.",
+          context: "In practice: dispatch changes routes or schedules based on fatigue patterns you've already identified, before an alert has to fire."
+        },
+        {
+          color: "yellow",
+          text: "We've identified fatigue-related clusters at the individual driver level, but routing and dispatch decisions are still made independently of that data.",
+          impact: "Identifying fatigue clusters at the individual level gives you real data granularity — the gap is that it isn't yet reaching the people who control the schedule.",
+          context: "In practice: you can name which drivers show fatigue patterns, but the dispatch team doesn't use that information when building schedules."
+        }
+      ]
+    },
+    {
+      id: "q2",
+      stage: "rollout",
+      stageLabel: "AI Rollout",
+      prompt: "How does your current cab camera deployment impact driver retention and cultural buy-in across your fleet?",
+      qContext: "In plain terms: do your drivers see the camera as protecting them, or watching them — and has that affected how many of them stick around?",
+      options: [
+        {
+          color: "red",
+          text: "Viewed strictly as a policing tool with no driver consultation, resulting in immediate friction and spikes in voluntary turnover.",
+          impact: "Rolling out cameras as a policing tool with no driver input is the fastest path to turning a safety investment into a turnover cost center.",
+          context: "In practice: drivers were never consulted before rollout, and you've seen people leave over it."
+        },
+        {
+          color: "green",
+          text: "Transparently co-designed with driver advisory councils, framed as a mutual tool for exoneration and professional growth, leading to neutral or positive retention impacts.",
+          impact: "Co-designing the rollout with driver advisory councils is what turns the technology into a retention asset instead of a retention risk.",
+          context: "In practice: drivers had a seat at the table when this was rolled out, and it's framed as something that protects them too."
+        },
+        {
+          color: "yellow",
+          text: "Positioned vaguely as 'insurance protection,' but communicated inconsistently, leading to persistent 'Big Brother' anxieties among drivers.",
+          impact: "Positioning the rollout vaguely as 'insurance protection' leaves an ambiguity that's quietly corrosive — drivers fill the unexplained gap with the least generous interpretation available.",
+          context: "In practice: drivers were told this is 'for insurance' but not given real specifics, and some are uneasy about it."
+        },
+        {
+          color: "red",
+          text: "Introduced with basic incentive payouts, but limited engagement regarding privacy boundaries or data usage transparency.",
+          impact: "Incentive payouts without privacy transparency don't build trust on their own — they just delay the moment the trust question gets asked.",
+          context: "In practice: drivers get paid for good scores, but haven't been told clearly how their data is actually used."
+        }
+      ]
+    },
+    {
+      id: "q3",
+      stage: "evaluation",
+      stageLabel: "AI ROI Evaluation",
+      prompt: "What methodology guides your coaching and safety development framework when addressing cognitive lapses and driver behaviors identified by AI?",
+      qContext: "In plain terms: when the AI flags a risky moment, does anyone actually talk to the driver about why it happened, or does it just get logged?",
+      options: [
+        {
+          color: "yellow",
+          text: "Coaching happens through post-incident reviews after a hard-braking or collision event, with proactive skill-building still ahead on the roadmap.",
+          impact: "Post-incident reviews still work as coaching — they just work after the cost has already been paid.",
+          context: "In practice: coaching happens after a hard-braking event or a collision, with the proactive layer still to be built."
+        },
+        {
+          color: "red",
+          text: "Weekly infraction reports are emailed directly to drivers, without human coaching or behavioral follow-up attached.",
+          impact: "Emailing infraction reports without follow-up is data delivery with no coaching attached — the least effective use of a flagged event.",
+          context: "In practice: drivers get an emailed list of their infractions with no conversation attached."
+        },
+        {
+          color: "green",
+          text: "Integration of a cognitive awareness coaching framework addressing micro-fatigue, situational perception, and habit-breaking through personalized, empathetic peer discussions.",
+          impact: "A cognitive awareness framework built on personalized, empathetic peer discussions is coaching built to change behavior, not just document it.",
+          context: "In practice: a real person talks with the driver about what was going on for them — fatigue, distraction, stress — not just the event itself."
+        },
+        {
+          color: "red",
+          text: "Monthly review of generic safety scorecards, with standard video clips shown to drivers in a disciplinary setting.",
+          impact: "A disciplinary scorecard review is a difficult long-term coaching strategy to sustain, and an expensive one.",
+          context: "In practice: drivers watch their own flagged clips in a group setting, framed as discipline rather than coaching."
+        }
+      ]
+    },
+    {
+      id: "q4",
+      stage: "evaluation",
+      stageLabel: "AI ROI Evaluation",
+      prompt: "Beyond the event counts and behavior-trend percentages your AI vendor's dashboard already reports, what internal metric does your team use to prove this technology is paying for itself?",
+      qContext: "In plain terms: can you point to one number — not from your vendor's dashboard — that proves this technology is saving you money?",
+      options: [
+        {
+          color: "green",
+          text: "A cost-per-prevented-incident ratio that ties documented interventions directly to avoided claims, reviewed against total technology spend at least quarterly.",
+          impact: "A cost-per-prevented-incident ratio is the metric that turns a safety program into a line item leadership can defend in a budget review.",
+          context: "In practice: you can show, in one number, how much this technology has saved you against what it costs — reviewed regularly."
+        },
+        {
+          color: "yellow",
+          text: "We track cost-per-alert or per-event, but haven't yet connected that figure to actual claims avoided or dollars protected.",
+          impact: "Tracking cost-per-alert measures activity, not impact — and those aren't the same thing.",
+          context: "In practice: you know what each alert costs to generate, but not whether it actually prevented anything."
+        },
+        {
+          color: "yellow",
+          text: "We rely on our insurance broker's periodic assessment of the program's impact rather than an internally owned metric.",
+          impact: "Relying on your insurance broker's assessment outsources your own ROI measurement to a third party with its own incentives — a fragile position to negotiate from.",
+          context: "In practice: your insurance broker tells you how the program is doing — you don't have your own version of that answer."
+        },
+        {
+          color: "red",
+          text: "We haven't yet defined an internal financial metric — the vendor's dashboard is the extent of our measurement today.",
+          impact: "When the vendor's dashboard is the extent of the measurement, you're measuring what they chose to show you, not what your business needs to know.",
+          context: "In practice: whatever number the vendor's dashboard shows you is the only number you have right now."
+        }
+      ]
+    },
+    {
+      id: "q5",
+      stage: "recovery",
+      stageLabel: "AI ROI Recovery & Restructuring",
+      prompt: "When your data reveals a systemic gap — a fatigue cluster, a coaching breakdown, a recurring escalation failure — who is structurally accountable for closing it across safety, dispatch, and executive leadership?",
+      qContext: "In plain terms: when a real pattern shows up in the data, is there one person whose job it is to actually fix it, or does it just get noticed and re-noticed?",
+      options: [
+        {
+          color: "red",
+          text: "There's no single named owner — the gap gets rediscovered independently each time it resurfaces, often by a different person.",
+          impact: "Rediscovering the same gap each time it resurfaces is the most expensive pattern of all: paying to find the same problem more than once.",
+          context: "In practice: the same problem gets found more than once because nobody specifically owns fixing it."
+        },
+        {
+          color: "yellow",
+          text: "The Safety Manager identifies the gap and raises it, but resolution depends on informal cooperation from Operations rather than a defined authority.",
+          impact: "Flagging the gap is only half the job when resolution depends on Operations' informal cooperation rather than defined authority.",
+          context: "In practice: Safety flags the issue, and then has to ask Operations to actually do something about it."
+        },
+        {
+          color: "green",
+          text: "A named executive owner reviews cross-departmental gaps monthly, with defined authority to change dispatch, training, or vendor practices in response.",
+          impact: "A named executive owner with defined authority is the difference between finding a gap and actually closing it.",
+          context: "In practice: one named executive reviews these gaps every month and has the authority to actually change something."
+        },
+        {
+          color: "red",
+          text: "Gaps are documented within the safety team's own records, but rarely reach Operations or executive leadership unless an incident forces the conversation.",
+          impact: "A gap that stays inside the safety team's own records isn't closed — it's filed.",
+          context: "In practice: the issue stays inside Safety's own files and doesn't reach Operations or leadership unless something goes wrong first."
+        }
+      ]
+    }
+  ];
+
+  const stageNames = {
+    rollout: "AI Rollout",
+    evaluation: "AI ROI Evaluation",
+    recovery: "AI ROI Recovery & Restructuring"
+  };
+  const colorPoints = { green: 2, yellow: 1, red: 0 };
+
+  const answers = {};
+
+  const mount = document.getElementById("questionMount");
+  const progressFill = document.getElementById("progressFill");
+
+  // Timing for the answer -> feedback choreography
+  const FADE_OUT_MS = 400;      // question body fading away
+  const CONTINUE_DELAY_MS = 1400; // pause after feedback appears, before Continue is revealed
+
+  // Build question screens
+  questions.forEach((q, idx) => {
+    const panel = document.createElement("div");
+    panel.className = "panel";
+    panel.dataset.screen = q.id;
+
+    const optionsHTML = q.options.map((opt, oIdx) => `
+      <div class="option" role="button" tabindex="0" data-color="${opt.color}" data-qid="${q.id}" data-oidx="${oIdx}">
+        <span class="option-text"><span class="option-letter">${OPTION_LETTERS[oIdx]}</span>${opt.text}</span>
+        <button type="button" class="context-toggle" data-qid="${q.id}" data-oidx="${oIdx}-toggle">More context ⌄</button>
+        <div class="context-body" id="context-${q.id}-${oIdx}">${opt.context}</div>
+      </div>
+    `).join("");
+
+    panel.innerHTML = `
+      <div class="brandline"><strong>Roosevelt Henderson Cook</strong> — AI ROI Mini-Assessment</div>
+      <div class="step-count">Question ${idx + 1} of ${questions.length}</div>
+      <div class="question-body" id="qbody-${q.id}">
+        <h2 class="prompt">${q.prompt}</h2>
+        <div class="qcontext-row">
+          <button type="button" class="qcontext-toggle" id="qcontext-toggle-${q.id}">More context on this question ⌄</button>
+          <div class="qcontext-body" id="qcontext-body-${q.id}">${q.qContext}</div>
+        </div>
+        <div class="options">${optionsHTML}</div>
+      </div>
+      <div class="feedback" id="feedback-${q.id}">
+        <div class="feedback-label">What this signals</div>
+        <p class="feedback-text" id="feedback-text-${q.id}"></p>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="continue-${q.id}" disabled>Continue</button>
+      </div>
+    `;
+    mount.appendChild(panel);
+  });
+
+  // Screen order
+  const screenOrder = ["intro", ...questions.map(q => q.id), "contact", "thankyou"];
+  let currentIndex = 0;
+
+  function showScreen(index) {
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    const target = document.querySelector(`[data-screen="${screenOrder[index]}"]`);
+    if (target) target.classList.add("active");
+    progressFill.style.width = `${(index / (screenOrder.length - 1)) * 100}%`;
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById("startBtn").addEventListener("click", () => {
+    currentIndex = 1;
+    showScreen(currentIndex);
+  });
+
+  // Wire up each question's option buttons, context toggles, continue button
+  questions.forEach((q) => {
+    const optionButtons = document.querySelectorAll(`.option[data-qid="${q.id}"]`);
+    const continueBtn = document.getElementById(`continue-${q.id}`);
+    const feedbackEl = document.getElementById(`feedback-${q.id}`);
+    const feedbackTextEl = document.getElementById(`feedback-text-${q.id}`);
+    const questionBody = document.getElementById(`qbody-${q.id}`);
+    let locked = false; // prevents re-firing once an answer has been chosen
+
+    // question-level "more context" toggle
+    const qToggle = document.getElementById(`qcontext-toggle-${q.id}`);
+    const qBody = document.getElementById(`qcontext-body-${q.id}`);
+    qToggle.addEventListener("click", () => {
+      qBody.classList.toggle("open");
+    });
+
+    optionButtons.forEach((btn) => {
+      // per-option context toggle (stop propagation so it doesn't also select the option)
+      const toggle = btn.querySelector(".context-toggle");
+      toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const oIdx = btn.dataset.oidx;
+        const body = document.getElementById(`context-${q.id}-${oIdx}`);
+        body.classList.toggle("open");
+      });
+
+      const selectOption = () => {
+        if (locked) return;
+        locked = true;
+
+        const oIdx = parseInt(btn.dataset.oidx, 10);
+        const opt = q.options[oIdx];
+
+        optionButtons.forEach(b => b.classList.remove("selected", "green", "yellow", "red"));
+        btn.classList.add("selected", opt.color);
+
+        answers[q.id] = { stage: q.stage, color: opt.color };
+
+        // Step 1: fade the question prompt, context, and options away together.
+        questionBody.classList.add("fading");
+
+        // Step 2: once faded, remove it from layout and let the feedback
+        // become the sole focal point of the panel.
+        setTimeout(() => {
+          questionBody.classList.add("hidden");
+
+          feedbackEl.classList.remove("green", "yellow", "red");
+          feedbackEl.classList.add(opt.color);
+          feedbackTextEl.textContent = opt.impact;
+          feedbackEl.classList.add("show");
+
+          // Step 3: give it a reading beat before Continue appears.
+          setTimeout(() => {
+            continueBtn.disabled = false;
+            continueBtn.classList.add("show");
+          }, CONTINUE_DELAY_MS);
+        }, FADE_OUT_MS);
+      };
+
+      btn.addEventListener("click", (e) => {
+        if (e.target === toggle) return;
+        selectOption();
+      });
+
+      // keyboard support since .option is now a div with role="button"
+      btn.addEventListener("keydown", (e) => {
+        if (e.target === toggle) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectOption();
+        }
+      });
+    });
+
+    continueBtn.addEventListener("click", () => {
+      currentIndex++;
+      showScreen(currentIndex);
+    });
+  });
+
+  // Contact form submit
+  document.getElementById("contactForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("fname").value.trim();
+    const email = document.getElementById("femail").value.trim();
+    const phone = document.getElementById("fphone").value.trim();
+
+    // Score by stage
+    const stageScores = { rollout: { pts: 0, max: 0 }, evaluation: { pts: 0, max: 0 }, recovery: { pts: 0, max: 0 } };
+    questions.forEach((q) => {
+      const a = answers[q.id];
+      stageScores[q.stage].max += 2;
+      if (a) stageScores[q.stage].pts += colorPoints[a.color];
+    });
+    Object.keys(stageScores).forEach(s => {
+      stageScores[s].pct = stageScores[s].max ? Math.round((stageScores[s].pts / stageScores[s].max) * 100) : null;
+    });
+
+    let weakestStage = null, weakestPct = 101;
+    ["rollout", "evaluation", "recovery"].forEach(s => {
+      if (stageScores[s].pct !== null && stageScores[s].pct < weakestPct) {
+        weakestPct = stageScores[s].pct;
+        weakestStage = s;
+      }
+    });
+
+    const payload = {
+      name, email, phone,
+      submittedAt: new Date().toISOString(),
+      source: "AI ROI Mini-Assessment v1",
+      formToken: FORM_TOKEN,
+      answers: questions.map(q => ({
+        question: q.id,
+        stage: q.stage,
+        prompt: q.prompt,
+        chosenColor: answers[q.id] ? answers[q.id].color : null
+      })),
+      stageScores,
+      weakestStage
+    };
+
+    // Fire the webhook in the background — this must NEVER block the person
+    // from seeing their result. A slow connection, a firewall, or a blocked
+    // request should not be able to freeze the page on a "please wait" that
+    // never resolves. We don't await this; we just let it run.
+    if (WEBHOOK_URL && WEBHOOK_URL.startsWith("http")) {
+      fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).catch(err => console.error("Webhook delivery failed:", err));
+    } else {
+      console.warn("No WEBHOOK_URL configured. Set it at the top of the script to enable automated delivery.");
+    }
+
+    document.getElementById("thankyouSummary").textContent =
+      `Thanks, ${name.split(" ")[0] || "there"} — here's a preview of what your full report will cover.`;
+
+    const weakestLabel = weakestStage ? stageNames[weakestStage] : null;
+    document.getElementById("thankyouWeakest").textContent = weakestLabel
+      ? `${weakestLabel} is where your responses show the most immediate opportunity. The full report reverse-engineers exactly where that chain breaks — why it's breaking there, how it's costing you, when it tends to surface, and what to stop doing before you try to fix it.`
+      : `Your responses have been recorded. Your detailed report is on its way.`;
+
+    currentIndex = screenOrder.length - 1;
+    showScreen(currentIndex);
+  });
+
+  showScreen(0);
+</script>
+</body>
+</html>
