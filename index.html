@@ -754,10 +754,18 @@
     // from seeing their result. A slow connection, a firewall, or a blocked
     // request should not be able to freeze the page on a "please wait" that
     // never resolves. We don't await this; we just let it run.
+    //
+    // Content-Type is deliberately "text/plain" instead of "application/json".
+    // This page and Zapier's servers are different domains, so a JSON
+    // Content-Type forces the browser to send a CORS "preflight" check first —
+    // and if that preflight isn't answered the way the browser expects, the
+    // browser silently cancels the real request. Zapier reads the JSON body
+    // correctly either way, but "text/plain" is exempt from that preflight,
+    // so the real data reliably gets through.
     if (WEBHOOK_URL && WEBHOOK_URL.startsWith("http")) {
       fetch(WEBHOOK_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       }).catch(err => console.error("Webhook delivery failed:", err));
     } else {
